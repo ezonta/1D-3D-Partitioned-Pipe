@@ -47,7 +47,6 @@
 
     <m2n:sockets from="Fluid1D" to="Fluid3D" exchange-directory=".." />
 
-
     <coupling-scheme:serial-implicit>
       <time-window-size value="0.01" />
       <max-time value="1.0" />

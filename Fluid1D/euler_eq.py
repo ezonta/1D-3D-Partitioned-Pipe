@@ -9,7 +9,7 @@ def main():
     
     # number of nodes 
 
-    n = 100
+    n = 10
     h = 1 / n
     t = 0
 
@@ -55,7 +55,6 @@ def main():
 
             u_iter = u
             p_iter = p
-            F_iter = F
 
             interface.mark_action_fulfilled(
             precice.action_write_iteration_checkpoint())
@@ -78,7 +77,7 @@ def main():
 
         # compute right-hand side of 1D PPE
 
-        for i in range(n):
+        for i in range(n-1):
 
             rhs[i+1] = 1 / dt * ((u[i+2,2] - u[i,2]) / 2*h)
 
@@ -87,24 +86,32 @@ def main():
         tolerance = 0.001
         error = 1
         omega = 1.8
+        max_iter = 500
+        iter = 0
 
         while error >= tolerance:
 
             p[0] = p[1] # renew neumann pressure inlet
             
-            for i in range(n):
-                p[i+1] = (1-omega) * p[i+1] + (((omega * h^2) / 2) * ((p[i] + p[i+2]) / h^2) - rhs[i+1])
+            for i in range(n-1):
+                p[i+1] = (1-omega) * p[i+1] + (((omega * h**2) / 2) * ((p[i] + p[i+2]) / h**2) - rhs[i+1])
 
             sum = 0
-            for i in range(n):
-                val = (p[i] - 2*p[i+1] + p[i+2]) / h^2 - rhs[i+1]
+            for i in range(n-1):
+                val = (p[i] - 2*p[i+1] + p[i+2]) / h**2 - rhs[i+1]
                 sum += val*val
 
             error = np.sqrt(sum/n)
 
+            iter += 1
+            if iter >= max_iter:
+                print("SOR solver did not converge.\n")
+                break
+                
+
         # calculate new velocities
 
-        for i in range(n):
+        for i in range(n-1):
             u[i+1,2] = u[i+1,2] - dt * ((p[i+2] - p[i+1]) / h)
 
 
@@ -133,7 +140,6 @@ def main():
 
             u = u_iter
             p = p_iter
-            F = F_iter
 
             interface.mark_action_fulfilled(
             precice.action_read_iteration_checkpoint())
