@@ -9,15 +9,16 @@ def main():
     
     # number of nodes 
 
+    length = 10
     n = 10
-    h = 1 / n
+    h = length / n
     t = 0
 
     # generate mesh
 
     x = np.zeros(n+1)
     y = np.zeros(n+1)
-    z = np.linspace(0,10,n+1)
+    z = np.linspace(0,length,n+1)
 
     # initial data
 
@@ -55,6 +56,7 @@ def main():
 
             u_iter = u
             p_iter = p
+            t_iter = t
 
             interface.mark_action_fulfilled(
             precice.action_write_iteration_checkpoint())
@@ -67,13 +69,13 @@ def main():
         # set boundary conditions
 
         u[0,2] = 1
-        u[1,2] = 1  # dirichlet velocity inlet
+        # u[1,2] = 1  # dirichlet velocity inlet
 
         u[-1,2] = u[-2,2]   # neumann velocity outlet
 
         p[0] = p[1] # neumann pressure inlet
         if interface.is_read_data_available():  # get dirichlet outlet pressure from 3D solver
-            p[n+1] = interface.read_scalar_data(pressure_id, vertex_ids)
+            p[-1] = interface.read_scalar_data(pressure_id, vertex_ids)
 
         # compute right-hand side of 1D PPE
 
@@ -85,8 +87,8 @@ def main():
 
         tolerance = 0.001
         error = 1
-        omega = 1.8
-        max_iter = 500
+        omega = 1.7
+        max_iter = 1000
         iter = 0
 
         while error >= tolerance:
@@ -94,11 +96,11 @@ def main():
             p[0] = p[1] # renew neumann pressure inlet
             
             for i in range(n-1):
-                p[i+1] = (1-omega) * p[i+1] + (((omega * h**2) / 2) * ((p[i] + p[i+2]) / h**2) - rhs[i+1])
+                p[i+1] = (1-omega) * p[i+1] + ((omega * h**2) / 2) * (((p[i] + p[i+2]) / h**2) - rhs[i+1])
 
             sum = 0
             for i in range(n-1):
-                val = (p[i] - 2*p[i+1] + p[i+2]) / h**2 - rhs[i+1]
+                val = ((p[i] - 2*p[i+1] + p[i+2]) / h**2) - rhs[i+1]
                 sum += val*val
 
             error = np.sqrt(sum/n)
@@ -112,7 +114,7 @@ def main():
         # calculate new velocities
 
         for i in range(n-1):
-            u[i+1,2] = u[i+1,2] - dt * ((p[i+2] - p[i+1]) / h)
+            u[i+1,2] = u[i+1,2] - dt * ((p[i+2] - p[i]) / 2*h)
 
 
         if interface.is_write_data_required(dt):    # write new velocities to 3D solver
@@ -140,6 +142,7 @@ def main():
 
             u = u_iter
             p = p_iter
+            t = t_iter
 
             interface.mark_action_fulfilled(
             precice.action_read_iteration_checkpoint())
