@@ -7,12 +7,13 @@ import precice
 
 def main():
     
-    # number of nodes 
+    # number of nodes, length of domain and space interval
 
     length = 10
-    n = 10
-    h = length / n
+    n = 20
+    h = 1 / n
     t = 0
+    counter = 0
 
     # generate mesh
 
@@ -57,6 +58,7 @@ def main():
             u_iter = u
             p_iter = p
             t_iter = t
+            counter_iter = counter
 
             interface.mark_action_fulfilled(
             precice.action_write_iteration_checkpoint())
@@ -74,14 +76,15 @@ def main():
         u[-1,2] = u[-2,2]   # neumann velocity outlet
 
         p[0] = p[1] # neumann pressure inlet
-        if interface.is_read_data_available():  # get dirichlet outlet pressure from 3D solver
-            p[-1] = interface.read_scalar_data(pressure_id, vertex_ids)
+        p[-1] = 0   # dirichlet pressure outlet
+        if interface.is_read_data_available():  # get pressure value from 3D solver
+            p[-2] = interface.read_scalar_data(pressure_id, vertex_ids)
 
         # compute right-hand side of 1D PPE
 
         for i in range(n-1):
 
-            rhs[i+1] = 1 / dt * ((u[i+2,2] - u[i,2]) / 2*h)
+            rhs[i+1] = (1 / dt) * ((u[i+2,2] - u[i,2]) / 2*h)
 
         # solve the PPE using a SOR solver
 
@@ -114,7 +117,7 @@ def main():
         # calculate new velocities
 
         for i in range(n-1):
-            u[i+1,2] = u[i+1,2] - dt * ((p[i+2] - p[i]) / 2*h)
+            u[i+1,2] = u[i+1,2] - dt * ((p[i+2] - p[i+1]) / h)
 
 
         if interface.is_write_data_required(dt):    # write new velocities to 3D solver
@@ -129,13 +132,15 @@ def main():
         u_print = np.ascontiguousarray(u_print, dtype=np.float32)
         p_print = np.ascontiguousarray(p_print, dtype=np.float32)
 
-        filename = "./data/Fluid1D_" + str(t)
+        
+        filename = "./data/Fluid1D_" + str(counter)
         pointsToVTK(filename, x, y, z, data = {"U" : u_print, "p" : p_print})
 
         # advance simulation time
 
         dt = interface.advance(dt)
         t = t + dt
+        counter += 1
 
         if interface.is_action_required(
             precice.action_read_iteration_checkpoint()):
@@ -143,6 +148,7 @@ def main():
             u = u_iter
             p = p_iter
             t = t_iter
+            counter = counter_iter
 
             interface.mark_action_fulfilled(
             precice.action_read_iteration_checkpoint())
