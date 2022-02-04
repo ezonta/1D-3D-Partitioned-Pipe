@@ -2,7 +2,7 @@
 # to ignore in Fluid1D
 
 Fluid1D/data/*
-Fluid1D/list_comprehension.py
+Fluid1D/list_comprehension_test.py
 Fluid1D/*.log
 Fluid1D/*.json
 
