@@ -7,3 +7,7 @@ Author: Elia Zonta (elia.zonta@tum.de)
 Advisor: Gerasimos Chourdakis
 
 The corresponding seminar paper can be found in the repository as paper.pdf
+
+## Requirements
+
+OpenFOAM, preCICE
