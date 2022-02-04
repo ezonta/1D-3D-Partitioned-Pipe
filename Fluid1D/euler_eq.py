@@ -5,6 +5,10 @@ from evtk.hl import pointsToVTK
 import numpy as np
 import precice
 
+def profile(x,y,u):
+    res = 2*u * (1 - (x**2 + y**2)/5**2)
+    return res
+
 def main():
     
     # number of nodes, length of domain and space interval
@@ -20,6 +24,9 @@ def main():
     x = np.zeros(n+1)
     y = np.zeros(n+1)
     z = np.linspace(0,length,n+1)
+
+    x_interface = np.linspace(-5,5,20)
+    y_interface = np.linspace(-5,5,20)
 
     # initial data
 
@@ -44,7 +51,7 @@ def main():
     pressure_name = "Pressure"
     pressure_id = interface.get_data_id(pressure_name, mesh_id)
 
-    positions = [[0, 0, z[-1]]]
+    positions = [[x0,y0,z[-1]] for x0 in x_interface for y0 in y_interface] #[[0, 0, z[-1]]]
 
     vertex_ids = interface.set_mesh_vertices(mesh_id, positions)
 
@@ -76,9 +83,10 @@ def main():
         u[-1,2] = u[-2,2]   # neumann velocity outlet
 
         p[0] = p[1] # neumann pressure inlet
-        p[-1] = 0   # dirichlet pressure outlet
-        if interface.is_read_data_available():  # get pressure value from 3D solver
-            p[-2] = interface.read_scalar_data(pressure_id, vertex_ids)
+        # p[-1] = 0   # dirichlet pressure outlet
+        if interface.is_read_data_available():  # get dirichlet pressure outlet value from 3D solver
+            p_read_in = interface.read_block_scalar_data(pressure_id, vertex_ids)
+            p[-1] = p_read_in[190]
 
         # compute right-hand side of 1D PPE
 
@@ -120,9 +128,18 @@ def main():
             u[i+1,2] = u[i+1,2] - dt * ((p[i+2] - p[i+1]) / h)
 
 
+        # transform average data to velocity profile and write to 3D solver
+
+        xx,yy = np.meshgrid(x_interface,y_interface)
+
+        vel_profile = profile(xx,yy,u[-2,2])
+        vel_profile = np.reshape(vel_profile, (len(positions),))
+
+        write_vel = [[0,0,res] if res>=0 else [0,0,0] for res in vel_profile]
+
         if interface.is_write_data_required(dt):    # write new velocities to 3D solver
-            interface.write_vector_data(
-            velocity_id, vertex_ids, u[-2])
+            interface.write_block_vector_data(
+            velocity_id, vertex_ids, write_vel)
 
         # transform data and write output data to vtk files
 
@@ -131,7 +148,6 @@ def main():
 
         u_print = np.ascontiguousarray(u_print, dtype=np.float32)
         p_print = np.ascontiguousarray(p_print, dtype=np.float32)
-
         
         filename = "./data/Fluid1D_" + str(counter)
         pointsToVTK(filename, x, y, z, data = {"U" : u_print, "p" : p_print})
