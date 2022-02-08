@@ -11,3 +11,15 @@ The corresponding seminar paper can be found in the repository as paper.pdf
 ## Requirements
 
 OpenFOAM, preCICE
+
+## How to run
+
+In two different terminals run:
+
+```bash
+cd Fluid1D && ./euler_eq.py
+```
+
+```bash
+cd Fluid3D && ./run.sh
+```
