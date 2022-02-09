@@ -6,7 +6,7 @@ Author: Elia Zonta (elia.zonta@tum.de)
 
 Advisor: Gerasimos Chourdakis
 
-The corresponding seminar paper can be found in the repository as paper.pdf
+The accompanying [seminar paper](paper.pdf) and [seminar presentation](seminar_presentation.pdf) can also be found in this repository.
 
 ## Requirements
 
